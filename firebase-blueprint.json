@@ -1,0 +1,175 @@
+{
+  "entities": {
+    "PlayerProfile": {
+      "title": "PlayerProfile",
+      "description": "Stores a player's persistent career stats, seasonal rank points, selected protester, and completed daily challenges without any PII.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The Firebase Auth UID of the player.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Public handle shown on leaderboards and multiplayer races.",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "protesterId": {
+          "type": "string",
+          "description": "Currently selected protester character.",
+          "enum": ["neha", "abhijit", "nsui", "genz", "minister", "warrior"],
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "seasonRp": {
+          "type": "integer",
+          "description": "Seasonal Rank Points (RP) earned in Season 1."
+        },
+        "rankTier": {
+          "type": "string",
+          "description": "Current seasonal rank tier title.",
+          "enum": [
+            "Morcha Rookie",
+            "Sadak Runner",
+            "Barricade Breaker",
+            "Inquilab Leader",
+            "Jantar Mantar Legend"
+          ],
+          "minLength": 1,
+          "maxLength": 30
+        },
+        "bestScore": {
+          "type": "integer",
+          "description": "Highest score achieved in a single run."
+        },
+        "bestTimeMs": {
+          "type": "integer",
+          "description": "Fastest completion time in milliseconds."
+        },
+        "totalRuns": {
+          "type": "integer",
+          "description": "Total number of protest runs completed."
+        },
+        "dailyChallengeIds": {
+          "type": "array",
+          "description": "Bounded list (max 10) of completed daily challenge IDs.",
+          "maxLength": 10
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the profile was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the profile was last updated."
+        }
+      },
+      "required": [
+        "userId",
+        "displayName",
+        "protesterId",
+        "seasonRp",
+        "rankTier",
+        "bestScore",
+        "bestTimeMs",
+        "totalRuns",
+        "dailyChallengeIds",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "RaceRun": {
+      "title": "RaceRun",
+      "description": "An immutable record of a completed or arrested protest run associated with a verified PlayerProfile.",
+      "type": "object",
+      "properties": {
+        "runId": {
+          "type": "string",
+          "description": "Unique identifier for the run document.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "description": "The Firebase Auth UID of the player who performed the run.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Player's display handle at the time of the run.",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "protesterId": {
+          "type": "string",
+          "description": "Protester character used in the run.",
+          "enum": ["neha", "abhijit", "nsui", "genz", "minister", "warrior"],
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "levelId": {
+          "type": "string",
+          "description": "Identifier of the dynamic level played.",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "score": {
+          "type": "integer",
+          "description": "Final score earned during the run."
+        },
+        "timeMs": {
+          "type": "integer",
+          "description": "Run duration in milliseconds."
+        },
+        "distanceM": {
+          "type": "integer",
+          "description": "Distance covered in meters."
+        },
+        "status": {
+          "type": "string",
+          "description": "Terminal outcome of the run.",
+          "enum": ["completed", "arrested"],
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the run was recorded."
+        }
+      },
+      "required": [
+        "runId",
+        "userId",
+        "displayName",
+        "protesterId",
+        "levelId",
+        "score",
+        "timeMs",
+        "distanceM",
+        "status",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/profiles/{userId}": {
+      "schema": { "$ref": "#/entities/PlayerProfile" },
+      "description": "Stores verified player career profiles, seasonal ranking RP, and daily challenge progress."
+    },
+    "/runs/{runId}": {
+      "schema": { "$ref": "#/entities/RaceRun" },
+      "description": "Stores immutable race run records linked to a player's profile."
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "The Jantar Mantar Run — द जंतर मंतर रन",
+  "description": "3D multiplayer protest street runner with dynamic New Delhi levels, seasonal rankings, global leaderboards, daily challenges, and live voice chat.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

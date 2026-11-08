@@ -1,0 +1,219 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidPlayerProfile(data) {
+      return data.userId is string
+        && data.userId.size() >= 1
+        && data.userId.size() <= 128
+        && data.userId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.userId == request.auth.uid
+        && data.displayName is string
+        && data.displayName.size() >= 1
+        && data.displayName.size() <= 40
+        && data.protesterId is string
+        && data.protesterId.size() >= 1
+        && data.protesterId.size() <= 20
+        && data.protesterId in ['neha', 'abhijit', 'nsui', 'genz', 'minister', 'warrior']
+        && data.seasonRp is int
+        && data.seasonRp >= 0
+        && data.seasonRp <= 1000000
+        && data.rankTier is string
+        && data.rankTier.size() >= 1
+        && data.rankTier.size() <= 30
+        && data.rankTier in [
+          'Morcha Rookie',
+          'Sadak Runner',
+          'Barricade Breaker',
+          'Inquilab Leader',
+          'Jantar Mantar Legend'
+        ]
+        && data.bestScore is int
+        && data.bestScore >= 0
+        && data.bestScore <= 1000000
+        && data.bestTimeMs is int
+        && data.bestTimeMs >= 0
+        && data.bestTimeMs <= 3600000
+        && data.totalRuns is int
+        && data.totalRuns >= 0
+        && data.totalRuns <= 100000
+        && data.dailyChallengeIds is list
+        && data.dailyChallengeIds.size() <= 10
+        && (data.dailyChallengeIds.size() == 0 || (data.dailyChallengeIds[0] is string && data.dailyChallengeIds[0].size() >= 1 && data.dailyChallengeIds[0].size() <= 40))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidRaceRun(data) {
+      return data.runId is string
+        && data.runId.size() >= 1
+        && data.runId.size() <= 128
+        && data.runId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.userId is string
+        && data.userId.size() >= 1
+        && data.userId.size() <= 128
+        && data.userId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.userId == request.auth.uid
+        && data.displayName is string
+        && data.displayName.size() >= 1
+        && data.displayName.size() <= 40
+        && data.protesterId is string
+        && data.protesterId.size() >= 1
+        && data.protesterId.size() <= 20
+        && data.protesterId in ['neha', 'abhijit', 'nsui', 'genz', 'minister', 'warrior']
+        && data.levelId is string
+        && data.levelId.size() >= 1
+        && data.levelId.size() <= 40
+        && data.levelId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.score is int
+        && data.score >= 0
+        && data.score <= 1000000
+        && data.timeMs is int
+        && data.timeMs >= 1000
+        && data.timeMs <= 3600000
+        && data.distanceM is int
+        && data.distanceM >= 0
+        && data.distanceM <= 50000
+        && data.status is string
+        && data.status.size() >= 1
+        && data.status.size() <= 20
+        && data.status in ['completed', 'arrested']
+        && data.createdAt is timestamp;
+    }
+
+    // Player Profiles Collection
+    match /profiles/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if false;
+
+      allow create: if isSignedIn()
+        && isVerified()
+        && isValidId(userId)
+        && request.auth.uid == userId
+        && isValidPlayerProfile(incoming())
+        && incoming().keys().hasAll([
+          'userId',
+          'displayName',
+          'protesterId',
+          'seasonRp',
+          'rankTier',
+          'bestScore',
+          'bestTimeMs',
+          'totalRuns',
+          'dailyChallengeIds',
+          'createdAt',
+          'updatedAt'
+        ])
+        && incoming().keys().hasOnly([
+          'userId',
+          'displayName',
+          'protesterId',
+          'seasonRp',
+          'rankTier',
+          'bestScore',
+          'bestTimeMs',
+          'totalRuns',
+          'dailyChallengeIds',
+          'createdAt',
+          'updatedAt'
+        ])
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if (
+        isSignedIn() && isValidPlayerProfile(incoming()) && (
+          // Action: Update Profile Stats & Career Progress
+          (
+            isVerified()
+            && isValidId(userId)
+            && request.auth.uid == userId
+            && existing().userId == request.auth.uid
+            && incoming().userId == existing().userId
+            && incoming().createdAt == existing().createdAt
+            && incoming().updatedAt == request.time
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'displayName',
+              'protesterId',
+              'seasonRp',
+              'rankTier',
+              'bestScore',
+              'bestTimeMs',
+              'totalRuns',
+              'dailyChallengeIds',
+              'updatedAt'
+            ])
+          )
+        )
+      );
+
+      allow delete: if false;
+    }
+
+    // Immutable Race Runs Collection
+    match /runs/{runId} {
+      allow get: if isSignedIn() && isValidId(runId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      allow create: if isSignedIn()
+        && isVerified()
+        && isValidId(runId)
+        && isValidRaceRun(incoming())
+        && incoming().runId == runId
+        && incoming().keys().hasAll([
+          'runId',
+          'userId',
+          'displayName',
+          'protesterId',
+          'levelId',
+          'score',
+          'timeMs',
+          'distanceM',
+          'status',
+          'createdAt'
+        ])
+        && incoming().keys().hasOnly([
+          'runId',
+          'userId',
+          'displayName',
+          'protesterId',
+          'levelId',
+          'score',
+          'timeMs',
+          'distanceM',
+          'status',
+          'createdAt'
+        ])
+        && incoming().createdAt == request.time
+        && exists(/databases/$(database)/documents/profiles/$(incoming().userId));
+
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}
